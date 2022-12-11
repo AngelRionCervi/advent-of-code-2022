@@ -45,10 +45,8 @@ function calcScenicScore(treeLines, targetTreeHeight) {
   const lineScores = Object.values(treeLines).reduce((acc, line) => {
     let score = 0
     for (let i = 0; i < line.length; i++) {
-      if (targetTreeHeight > line[i]) {
-        score++
-      } else {
-        score++
+      score++
+      if (targetTreeHeight <= line[i]) {
         break
       }
     }
