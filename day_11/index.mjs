@@ -4,7 +4,7 @@ import rawInput from './input.mjs'
 const input = rawInput.split('\n\n')
 
 let monkeys = []
-let modeFactor = null
+let modFactor = null
 
 function get2MostActiveMonkeyProd() {
   const [mostActiveMonkey1SumPart2, mostActiveMonkey2SumPart2] = monkeys
@@ -49,9 +49,7 @@ class Monkey {
         item += opNumber
       }
       if (part2) {
-        console.log('item 1', item)
-        item %= modeFactor
-        console.log('item 2', item)
+        item %= modFactor
       } else {
         item = Math.floor(item / 3)
       }
@@ -92,7 +90,7 @@ function setupMonkeys(part2) {
 
   if (part2) {
     // smallest number that can be dividev by all the monkeys divisors (test)
-    modeFactor = monkeys.reduce((acc, monkey) => acc * monkey.test, 1)
+    modFactor = monkeys.reduce((acc, monkey) => acc * monkey.test, 1)
   }
 
   for (let i = 0; i < rounds; i++) {
