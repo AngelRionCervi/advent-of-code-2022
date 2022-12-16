@@ -25,12 +25,12 @@ function getRockPaths() {
   return input.map((rawPath) => {
     return rawPath.split(' -> ').map((rawCoord) => {
       const [x, y] = rawCoord.split(',').map((coord) => parseInt(coord))
-      return { x: x, y }
+      return { x, y }
     })
   })
 }
 
-function makeGrid(width, height, part2) {
+function makeGrid(width, height) {
   return new Array(height + 1).fill('').map(() => new Array(width + 1).fill('.'))
 }
 
@@ -131,7 +131,7 @@ function simulateSand(grid, smallestX, startSand = null) {
 }
 
 function simulateSandP2(grid, smallestX, startSand = null) {
-  const sand = startSand ?? { x: 500 - (smallestX / 2), y: 0 }
+  const sand = startSand ?? { x: 500 - smallestX / 2, y: 0 }
 
   while (true) {
     const { left, center, right } = getSandFloor(sand, grid)
