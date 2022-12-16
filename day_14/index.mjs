@@ -91,8 +91,8 @@ function getSandFloor(sand, grid) {
   return { left, center, right }
 }
 
-function simulateSand(grid, smallestX, startSand) {
-  const sand = startSand ? startSand : { x: 500 - smallestX, y: 0 }
+function simulateSand(grid, smallestX, startSand = null) {
+  const sand = startSand ?? { x: 500 - smallestX, y: 0 }
 
   while (true) {
     if (sand.y < 0 || sand.x < 0 || sand.y > grid.length - 1 || sand.x > grid[0].length - 1) {
@@ -103,7 +103,7 @@ function simulateSand(grid, smallestX, startSand) {
     if (!center) {
       sand.y++
     } else {
-      if (center === 'rock' && left && right) {
+      if (center && left && right) {
         break
       } else {
         if (!left) {
@@ -130,8 +130,8 @@ function simulateSand(grid, smallestX, startSand) {
   return !grid[sand.y]?.[sand.x]
 }
 
-function simulateSandP2(grid, smallestX, startSand) {
-  const sand = startSand ? startSand : { x: 500 - (smallestX / 2), y: 0 }
+function simulateSandP2(grid, smallestX, startSand = null) {
+  const sand = startSand ?? { x: 500 - (smallestX / 2), y: 0 }
 
   while (true) {
     const { left, center, right } = getSandFloor(sand, grid)
@@ -182,7 +182,7 @@ function part1() {
       sandGrainCount++
     }
   }
-  
+
   printFrame(grid)
   console.log('sandGrainCount', sandGrainCount)
 }
