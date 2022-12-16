@@ -3,155 +3,135 @@ import rawInput from './input.mjs'
 // setup
 const input = rawInput
 
-const grid = input.split('\n').map((row) => row.split(''))
-const alphabet = 'abcdefghijklmnopqrstuvwxyz'
+function getInput() {
+  return input.split('\n').reduce(
+    (acc, row, y) => {
+      const parsedRow = row.split('').map((char, x) => {
+        if (char === 'S') {
+          acc.start = { x, y }
+          return 0
+        } else if (char === 'E') {
+          acc.end = { x, y }
+          return 25
+        }
 
-function getCharPosition(char) {
-  for (let i = 0; i < grid.length; i++) {
-    const row = grid[i]
-    const x = row.findIndex((c) => c === char)
-    if (x !== -1) {
-      return { y: i, x }
-    }
+        return char.charCodeAt(0) - 'a'.charCodeAt(0)
+      })
+
+      return { ...acc, grid: [...acc.grid, parsedRow] }
+    },
+    { grid: [], start: null, end: null }
+  )
+}
+
+function getAllPoints(targetAlt, grid) {
+  return grid.reduce((acc, row, y) => {
+    const rowRes = row.reduce((rowAcc, alt, x) => {
+      if (alt === targetAlt) {
+        return [...rowAcc, { x, y }]
+      }
+      return rowAcc
+    }, [])
+    return [...acc, ...rowRes]
+  }, [])
+}
+
+function getNeighbors(x, y, grid) {
+  const neighbors = []
+
+  if (y + 1 < grid.length && grid[y + 1][x] <= grid[y][x] + 1) {
+    neighbors.push(pointToInt(x, y + 1))
+  }
+  if (y - 1 >= 0 && grid[y - 1][x] <= grid[y][x] + 1) {
+    neighbors.push(pointToInt(x, y - 1))
+  }
+  if (x + 1 < grid[y].length && grid[y][x + 1] <= grid[y][x] + 1) {
+    neighbors.push(pointToInt(x + 1, y))
+  }
+  if (x - 1 >= 0 && grid[y][x - 1] <= grid[y][x] + 1) {
+    neighbors.push(pointToInt(x - 1, y))
+  }
+
+  return neighbors
+}
+
+function pointToInt(x, y) {
+  return y * 1000 + x
+}
+
+function intToPoint(int) {
+  return {
+    y: Math.floor(int / 1000),
+    x: int % 1000,
   }
 }
 
-function getNextIndex(nodes) {
-  const lowestFScore = [...nodes].sort((a, b) => a.fScore - b.fScore)[0].fScore
-  const nodesWithLowestScore = nodes.filter((node) => node.fScore === lowestFScore)
-  const lowestHScore = [...nodesWithLowestScore].sort((a, b) => a.hScore - b.hScore)[0].hScore
+function dijkstraDist(grid, start, end) {
+  const dist = {}
+  const queue = []
 
-  const nextIndex = nodes.findIndex((node) => node.fScore === lowestFScore && node.hScore === lowestHScore)
-
-  return nextIndex
-}
-
-function getDistance(nodeCoord, goalCoord) {
-  return Math.abs(nodeCoord.x - goalCoord.x) + Math.abs(nodeCoord.y - goalCoord.y)
-}
-
-function findNeighbours(node) {
-  const nodeCharIndex = alphabet.indexOf(node.char)
-  const right = { x: node.x + 1, y: node.y, char: grid[node.y]?.[node.x + 1], gScore: node.gScore }
-  const left = { x: node.x - 1, y: node.y, char: grid[node.y]?.[node.x - 1], gScore: node.gScore }
-  const top = { x: node.x, y: node.y - 1, char: grid[node.y - 1]?.[node.x], gScore: node.gScore }
-  const bottom = { x: node.x, y: node.y + 1, char: grid[node.y + 1]?.[node.x], gScore: node.gScore }
-
-  return [top, bottom, right, left].filter(({ char }) => {
-    //return char
-    if (!char) {
-      return false
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[y].length; x++) {
+      const id = pointToInt(x, y)
+      dist[id] = Infinity
+      queue.push(id)
     }
-    let charToCompare = char
-    if (char === 'S') {
-      charToCompare = 'a'
-    } else if (char === 'E') {
-      charToCompare = 'z'
-    }
-    if (charToCompare) {
-      const neighbourCharIndex = alphabet.indexOf(charToCompare)
-      const isUpOne = nodeCharIndex === neighbourCharIndex - 1
-      const isDownOne = nodeCharIndex === neighbourCharIndex + 1
-      const isFlat = nodeCharIndex === neighbourCharIndex
-
-      return isFlat || isUpOne || isDownOne
-    }
-
-    return false
-  })
-}
-
-function getPath(endNode, start) {
-  const path = []
-  let curNode = endNode
-  let index = 0
-  while (curNode?.parent) {
-    path.push({ x: curNode.x, y: curNode.y, char: curNode.char, index })
-    curNode = curNode?.parent
-    index++
   }
-  path.push({ x: start.x, y: start.y, char: start.char, index: index + 1 })
 
-  return path
-}
+  dist[pointToInt(start.x, start.y)] = 0
 
-function renderPath(path, debug = false) {
-  const gridRows = grid.map((row) => row.map((c) => (debug ? c : '.')))
+  while (queue.length) {
+    let current = null
 
-  path.reverse().forEach(({ x, y }, index) => {
-    const next = path[index + 1]
-    if (next) {
-      if (x !== next.x) {
-        gridRows[y][x] = x > next.x ? '<' : '>'
-      } else if (y !== next.y) {
-        gridRows[y][x] = y > next.y ? '^' : '⌄'
+    for (const next of queue) {
+      if (current === null || dist[next] < dist[current]) {
+        current = next
       }
     }
-  })
 
-  const printableGrid = gridRows.map((row) => row.join('')).join('\n')
-  console.log(printableGrid + '\n')
-}
-
-// part 1
-const startCoord = getCharPosition('S')
-const goalCoord = getCharPosition('E')
-const start = { ...startCoord, char: 'S', neighbours: [], gScore: 0, fScore: getDistance(startCoord, goalCoord), hScore: getDistance(startCoord, goalCoord) }
-const goal = { ...goalCoord, char: 'E', neighbours: [] }
-
-const open = [start]
-const closed = []
-
-let endNode = null
-
-while (open.length) {
-  //const next = open.splice(getNextIndex(open), 1)[0]
-  let next = open[0]
-  for (let i = 0; i < open.length; i++) {
-    if ((open[i].fScore < next.fScore) || (next.fScore === open[i].fScore && open[i].hScore < next.hScore)) {
-      next = open[i]
-    }
-  }
-
-  closed.push(next)
-  open.splice(open.findIndex((n) => n.x === next.x && n.y === next.y), 1)
-
-  // if (closed.some((node) => node.x === next.x && node.y === next.y)) {
-  //   console.log('shit')
-  //   renderPath(getPath(next, start))
-  // }
-  //renderPath(getPath(next, start))
-
-  if (next.x === goal.x && next.y === goal.y) {
-    endNode = next
-    break
-  }
-
-
-  next.neighbours = findNeighbours(next)//.filter((node) => !open.some((closedNode) => node.x === closedNode.x && node.y === closedNode.y))
-
-
-  for (const neighbour of next.neighbours) {
-    if (closed.some((closedNode) => neighbour.x === closedNode.x && neighbour.y === closedNode.y)) {
-      //continue
+    if (current === pointToInt(end.x, end.y)) {
+      break
     }
 
-    const newGScore = neighbour.gScore + 1
+    queue.splice(
+      queue.findIndex((x) => x === current),
+      1
+    )
 
-    if (newGScore < neighbour.gScore || !open.some((node) => node.x === neighbour.x && node.y === neighbour.y)) {
-      const neighbourGoalDist = getDistance(neighbour, goal)
-      neighbour.parent = next
-      neighbour.gScore = newGScore
-      neighbour.hScore = neighbourGoalDist
-      neighbour.fScore = newGScore + neighbourGoalDist
+    const point = intToPoint(current)
+    const neighbors = getNeighbors(point.x, point.y, grid)
 
-      if (!open.some((node) => node.x === neighbour.x && node.y === neighbour.y)) {
-        open.push(neighbour)
+    for (const neighbor of neighbors) {
+      if (queue.includes(neighbor)) {
+        const alt = dist[current] + 1
+
+        if (alt < dist[neighbor]) {
+          dist[neighbor] = alt
+        }
       }
     }
   }
+
+  return dist
 }
 
-const path = getPath(endNode, start)
-renderPath(path)
-console.log(path.length - 1)
+function part1() {
+  const { grid, start, end } = getInput()
+  const data = dijkstraDist(grid, start, end)
+  const distance = data[pointToInt(end.x, end.y)]
+
+  console.log('distance', distance)
+}
+
+// unga bunga
+function part2() {
+  const { grid, end } = getInput()
+  const allAPoints = getAllPoints(0, grid)
+  const data = allAPoints.map((aPoint) => dijkstraDist(grid, aPoint, end)[pointToInt(end.x, end.y)])
+  const smallestDistance = data.sort((a, b) => a - b)[0]
+
+  console.log('smallestDistance', smallestDistance)
+}
+
+part1()
+part2()
