@@ -18,7 +18,10 @@ function getCharPosition(char) {
 
 function getNextIndex(nodes) {
   const lowestFScore = [...nodes].sort((a, b) => a.fScore - b.fScore)[0].fScore
-  const nextIndex = nodes.findIndex((node) => node.fScore === lowestFScore)
+  const nodesWithLowestScore = nodes.filter((node) => node.fScore === lowestFScore)
+  const lowestHScore = [...nodesWithLowestScore].sort((a, b) => a.hScore - b.hScore)[0].hScore
+
+  const nextIndex = nodes.findIndex((node) => node.fScore === lowestFScore && node.hScore === lowestHScore)
 
   return nextIndex
 }
@@ -29,10 +32,10 @@ function getDistance(nodeCoord, goalCoord) {
 
 function findNeighbours(node) {
   const nodeCharIndex = alphabet.indexOf(node.char)
-  const right = { x: node.x + 1, y: node.y, char: grid[node.y]?.[node.x + 1], gScore: node.gScore + 1 }
-  const left = { x: node.x - 1, y: node.y, char: grid[node.y]?.[node.x - 1], gScore: node.gScore + 1 }
-  const top = { x: node.x, y: node.y - 1, char: grid[node.y - 1]?.[node.x], gScore: node.gScore + 1 }
-  const bottom = { x: node.x, y: node.y + 1, char: grid[node.y + 1]?.[node.x], gScore: node.gScore + 1 }
+  const right = { x: node.x + 1, y: node.y, char: grid[node.y]?.[node.x + 1], gScore: node.gScore }
+  const left = { x: node.x - 1, y: node.y, char: grid[node.y]?.[node.x - 1], gScore: node.gScore }
+  const top = { x: node.x, y: node.y - 1, char: grid[node.y - 1]?.[node.x], gScore: node.gScore }
+  const bottom = { x: node.x, y: node.y + 1, char: grid[node.y + 1]?.[node.x], gScore: node.gScore }
 
   return [top, bottom, right, left].filter(({ char }) => {
     //return char
@@ -93,7 +96,7 @@ function renderPath(path, debug = false) {
 // part 1
 const startCoord = getCharPosition('S')
 const goalCoord = getCharPosition('E')
-const start = { ...startCoord, char: 'S', neighbours: [], gScore: 0, fScore: getDistance(startCoord, goalCoord) }
+const start = { ...startCoord, char: 'S', neighbours: [], gScore: 0, fScore: getDistance(startCoord, goalCoord), hScore: getDistance(startCoord, goalCoord) }
 const goal = { ...goalCoord, char: 'E', neighbours: [] }
 
 const open = [start]
@@ -102,13 +105,16 @@ const closed = []
 let endNode = null
 
 while (open.length) {
-  const next = open.splice(getNextIndex(open), 1)[0]
-
-  if (!open.length) {
-    console.log('THE END')
+  //const next = open.splice(getNextIndex(open), 1)[0]
+  let next = open[0]
+  for (let i = 0; i < open.length; i++) {
+    if ((open[i].fScore < next.fScore) || (next.fScore === open[i].fScore && open[i].hScore < next.hScore)) {
+      next = open[i]
+    }
   }
 
   closed.push(next)
+  open.splice(open.findIndex((n) => n.x === next.x && n.y === next.y), 1)
 
   // if (closed.some((node) => node.x === next.x && node.y === next.y)) {
   //   console.log('shit')
@@ -121,21 +127,23 @@ while (open.length) {
     break
   }
 
-  if (!next.neighbours?.length) {
-    next.neighbours = findNeighbours(next)//.filter((node) => !open.some((closedNode) => node.x === closedNode.x && node.y === closedNode.y))
-  }
+
+  next.neighbours = findNeighbours(next)//.filter((node) => !open.some((closedNode) => node.x === closedNode.x && node.y === closedNode.y))
+
 
   for (const neighbour of next.neighbours) {
     if (closed.some((closedNode) => neighbour.x === closedNode.x && neighbour.y === closedNode.y)) {
       //continue
     }
 
-    const newGScore = neighbour.gScore
+    const newGScore = neighbour.gScore + 1
 
     if (newGScore < neighbour.gScore || !open.some((node) => node.x === neighbour.x && node.y === neighbour.y)) {
+      const neighbourGoalDist = getDistance(neighbour, goal)
       neighbour.parent = next
       neighbour.gScore = newGScore
-      neighbour.fScore = newGScore + getDistance(neighbour, goal)
+      neighbour.hScore = neighbourGoalDist
+      neighbour.fScore = newGScore + neighbourGoalDist
 
       if (!open.some((node) => node.x === neighbour.x && node.y === neighbour.y)) {
         open.push(neighbour)
